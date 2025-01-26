@@ -44,5 +44,10 @@ contract Giggle {
     function withdrawFunds(uint256 _orderId) external {
         i_giggleService.withdrawFunds(_orderId, msg.sender);
     }
+
+    function returnFunds(uint256 _orderId) external {
+        i_giggleService.returnFunds(_orderId, msg.sender);
+    }
+
     //
 }

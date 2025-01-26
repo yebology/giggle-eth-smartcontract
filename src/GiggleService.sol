@@ -9,7 +9,7 @@ contract GiggleService {
         FINISHED,
         APPROVED,
         FEE_WITHDRAWED,
-        CANCELED
+        FAILED
     }
 
     struct Proposal {
@@ -178,10 +178,12 @@ contract GiggleService {
         checkPostOwnerAuthorization(_orderId, _owner)
         checkWithdrawStatus(_orderId, OrderStatus.APPROVED)
     {
-        _withdrawFunds(_orderId, _owner);
+        _withdraw(_orderId, _owner);
     }
 
-    function returnFunds() external {}
+    function returnFunds(uint256 _orderId, address _user) external {
+        _refund(_orderId, _user);
+    }
 
     function _addNewProposal(
         string memory _postId,
@@ -211,12 +213,21 @@ contract GiggleService {
         );
     }
 
-    function _withdrawFunds(uint256 _orderId, address _owner) private {
+    function _withdraw(uint256 _orderId, address _owner) private {
         uint256 proposalId = s_orders[_orderId].proposalId;
         uint256 withdrawAmount = s_proposals[proposalId].finalFee;
         bool success = _transferFunds(_owner, withdrawAmount);
         if (success) {
             s_orders[_orderId].status = OrderStatus.FEE_WITHDRAWED;
+        }
+    }
+
+    function _refund(uint256 _orderId, address _user) private {
+        uint256 proposalId = s_orders[_orderId].proposalId;
+        uint256 amount = s_proposals[proposalId].finalFee;
+        bool success = _transferFunds(_user, amount);
+        if (success) {
+            s_orders[_orderId].status = OrderStatus.FAILED;
         }
     }
 
