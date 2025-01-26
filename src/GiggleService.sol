@@ -114,6 +114,7 @@ contract GiggleService {
         _;
     }
 
+    // done test
     function registerWallet(
         string memory _postId,
         address _wallet

@@ -5,14 +5,14 @@ import {GiggleService} from "./GiggleService.sol";
 
 contract Giggle {
     //
-    GiggleService private i_giggleService;
+    GiggleService private immutable giggleService;
 
     constructor() {
-        i_giggleService = new GiggleService();
+        giggleService = new GiggleService();
     }
 
     function registerWallet(string memory _postId) external {
-        i_giggleService.registerWallet(_postId, msg.sender);
+        giggleService.registerWallet(_postId, msg.sender);
     }
 
     function createProposalRequest(
@@ -21,7 +21,7 @@ contract Giggle {
         address _buyer,
         uint256 _finalFee
     ) external {
-        i_giggleService.createProposalRequest(
+        giggleService.createProposalRequest(
             _postId,
             _daysEstimationForCompletion,
             _buyer,
@@ -30,23 +30,23 @@ contract Giggle {
     }
 
     function acceptProposalRequest(uint256 _proposalId) external payable {
-        i_giggleService.acceptProposalRequest(_proposalId, msg.sender);
+        giggleService.acceptProposalRequest(_proposalId, msg.sender);
     }
 
     function finishOrder(uint256 _orderId) external {
-        i_giggleService.finishOrder(_orderId, msg.sender);
+        giggleService.finishOrder(_orderId, msg.sender);
     }
 
     function approveFinishedOrder(uint256 _orderId) external {
-        i_giggleService.approveFinishedOrder(_orderId, msg.sender);
+        giggleService.approveFinishedOrder(_orderId, msg.sender);
     }
 
     function withdrawFunds(uint256 _orderId) external {
-        i_giggleService.withdrawFunds(_orderId, msg.sender);
+        giggleService.withdrawFunds(_orderId, msg.sender);
     }
 
     function returnFunds(uint256 _orderId) external {
-        i_giggleService.returnFunds(_orderId, msg.sender);
+        giggleService.returnFunds(_orderId, msg.sender);
     }
 
     //
