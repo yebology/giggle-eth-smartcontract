@@ -20,12 +20,7 @@ contract Giggle {
         address _buyer,
         uint256 _finalFee
     ) external {
-        giggleService.createProposalRequest(
-            _postId,
-            _daysEstimationForCompletion,
-            _buyer,
-            _finalFee
-        );
+        giggleService.createProposalRequest(_postId, _daysEstimationForCompletion, _buyer, _finalFee);
     }
 
     function acceptProposalRequest(uint256 _proposalId) external payable {
