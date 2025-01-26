@@ -48,6 +48,5 @@ contract Giggle {
     function returnFunds(uint256 _orderId) external {
         giggleService.returnFunds(_orderId, msg.sender);
     }
-
     //
 }
