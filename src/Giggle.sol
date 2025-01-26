@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {GiggleService} from "./GiggleService.sol";
 
 contract Giggle {
-    //
     GiggleService private immutable giggleService;
 
     constructor() {
