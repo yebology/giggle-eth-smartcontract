@@ -7,7 +7,7 @@ import {Giggle} from "../src/Giggle.sol";
 import {GiggleScript} from "../script/GiggleScript.s.sol";
 
 contract GiggleTest is Test {
-    // 
+    //
     Giggle private giggle;
 
     function setUp() public {
@@ -15,8 +15,6 @@ contract GiggleTest is Test {
         giggle = giggleScript.run();
     }
 
-    function testRegisterWallet() public {
-        
-    }
+    function testRegisterWallet() public {}
     //
 }

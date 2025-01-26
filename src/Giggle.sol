@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {GiggleService} from "./GiggleService.sol";
 
 contract Giggle {
-    //
     GiggleService private immutable giggleService;
 
     constructor() {
@@ -48,6 +47,4 @@ contract Giggle {
     function returnFunds(uint256 _orderId) external {
         giggleService.returnFunds(_orderId, msg.sender);
     }
-
-    //
 }

@@ -19,6 +19,7 @@ contract GiggleService {
         uint256 finalFee;
         uint256 daysEstimationForCompletion;
     }
+
     struct Order {
         uint256 orderId;
         uint256 proposalId;
@@ -27,8 +28,7 @@ contract GiggleService {
     }
 
     mapping(string postId => address owner) private s_postOwnerWallet;
-    mapping(address buyer => mapping(uint256 orderId => uint256 fund))
-        private s_fundsFromBuyer;
+    mapping(address buyer => mapping(uint256 orderId => uint256 fund)) private s_fundsFromBuyer;
 
     Proposal[] private s_proposals;
     Order[] private s_orders;
@@ -103,22 +103,18 @@ contract GiggleService {
         OrderStatus status = s_orders[_orderId].status;
         uint256 orderTimestamp = s_orders[_orderId].orderAcceptedAt;
         uint256 proposalId = s_orders[_orderId].proposalId;
-        uint256 daysEstimation = s_proposals[proposalId]
-            .daysEstimationForCompletion * 1 days;
-        if (
-            status != expectedStatus &&
-            block.timestamp < orderTimestamp + daysEstimation
-        ) {
+        uint256 daysEstimation = s_proposals[proposalId].daysEstimationForCompletion * 1 days;
+        if (status != expectedStatus && block.timestamp < orderTimestamp + daysEstimation) {
             revert InvalidWithdrawAction();
         }
         _;
     }
 
     // done test
-    function registerWallet(
-        string memory _postId,
-        address _wallet
-    ) external checkPostIdAndWalletInput(_postId, _wallet) {
+    function registerWallet(string memory _postId, address _wallet)
+        external
+        checkPostIdAndWalletInput(_postId, _wallet)
+    {
         s_postOwnerWallet[_postId] = _wallet;
     }
 
@@ -128,18 +124,10 @@ contract GiggleService {
         address _buyer,
         uint256 _finalFee
     ) external checkPostIdAndWalletInput(_postId, _buyer) {
-        _addNewProposal(
-            _postId,
-            _daysEstimationForCompletion,
-            _buyer,
-            _finalFee
-        );
+        _addNewProposal(_postId, _daysEstimationForCompletion, _buyer, _finalFee);
     }
 
-    function acceptProposalRequest(
-        uint256 _proposalId,
-        address _user
-    )
+    function acceptProposalRequest(uint256 _proposalId, address _user)
         external
         payable
         checkUserAuthorization(_proposalId, _user)
@@ -149,10 +137,7 @@ contract GiggleService {
         _addNewOrder(_proposalId);
     }
 
-    function finishOrder(
-        uint256 _orderId,
-        address _owner
-    )
+    function finishOrder(uint256 _orderId, address _owner)
         external
         checkPostOwnerAuthorization(_orderId, _owner)
         checkOrderStatus(_orderId, OrderStatus.PAID)
@@ -160,10 +145,7 @@ contract GiggleService {
         s_orders[_orderId].status = OrderStatus.FINISHED;
     }
 
-    function approveFinishedOrder(
-        uint256 _orderId,
-        address _approver
-    )
+    function approveFinishedOrder(uint256 _orderId, address _approver)
         external
         checkApproverAuthorization(_orderId, _approver)
         checkOrderStatus(_orderId, OrderStatus.FINISHED)
@@ -171,10 +153,7 @@ contract GiggleService {
         s_orders[_orderId].status = OrderStatus.APPROVED;
     }
 
-    function withdrawFunds(
-        uint256 _orderId,
-        address _owner
-    )
+    function withdrawFunds(uint256 _orderId, address _owner)
         external
         checkPostOwnerAuthorization(_orderId, _owner)
         checkWithdrawStatus(_orderId, OrderStatus.APPROVED)
@@ -232,23 +211,16 @@ contract GiggleService {
         }
     }
 
-    function _placeFunds(
-        uint256 _orderId,
-        address _buyer,
-        uint256 _amount
-    ) private {
+    function _placeFunds(uint256 _orderId, address _buyer, uint256 _amount) private {
         bool success = _transferFunds(address(this), _amount);
         if (success) {
             s_fundsFromBuyer[_buyer][_orderId] = msg.value;
         }
     }
 
-    function _transferFunds(
-        address _recipient,
-        uint256 _amount
-    ) private returns (bool) {
+    function _transferFunds(address _recipient, uint256 _amount) private returns (bool) {
         address payable recipient = payable(address(_recipient));
-        (bool success, ) = recipient.call{value: _amount}("");
+        (bool success,) = recipient.call{value: _amount}("");
         return success;
     }
     //
