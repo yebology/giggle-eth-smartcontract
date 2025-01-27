@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {GiggleService} from "./GiggleService.sol";
 
 contract Giggle {
+    //
     GiggleService private immutable giggleService;
 
     constructor() {
@@ -20,11 +21,11 @@ contract Giggle {
         address _buyer,
         uint256 _finalFee
     ) external {
-        giggleService.createProposalRequest(_postId, _daysEstimationForCompletion, _buyer, _finalFee);
+        giggleService.createProposalRequest(_postId, _daysEstimationForCompletion, _buyer, _finalFee, msg.sender);
     }
 
     function acceptProposalRequest(uint256 _proposalId) external payable {
-        giggleService.acceptProposalRequest(_proposalId, msg.sender);
+        giggleService.acceptProposalRequest{value: msg.value}(_proposalId, msg.sender);
     }
 
     function finishOrder(uint256 _orderId) external {
@@ -41,6 +42,26 @@ contract Giggle {
 
     function returnFunds(uint256 _orderId) external {
         giggleService.returnFunds(_orderId, msg.sender);
+    }
+
+    function getPostOwner(string memory _postId) external view returns (address) {
+        return giggleService.getPostOwner(_postId);
+    }
+
+    function getFundsFromBuyer(uint256 _orderId) external view returns (uint256) {
+        return giggleService.getFundsFromBuyer(_orderId);
+    }
+
+    function getProposals() external view returns (GiggleService.Proposal[] memory) {
+        return giggleService.getProposals();
+    }
+
+    function getOrders() external view returns (GiggleService.Order[] memory) {
+        return giggleService.getOrders();
+    }
+
+    function getGiggleServiceContractAddress() external view returns (address) {
+        return address(giggleService);
     }
     //
 }

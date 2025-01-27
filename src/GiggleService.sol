@@ -9,7 +9,7 @@ contract GiggleService {
         FINISHED,
         APPROVED,
         FEE_WITHDRAWED,
-        FAILED
+        FAILED_AND_REFUNDED
     }
 
     struct Proposal {
@@ -27,11 +27,11 @@ contract GiggleService {
         OrderStatus status;
     }
 
-    mapping(string postId => address owner) private s_postOwnerWallet;
-    mapping(address buyer => mapping(uint256 orderId => uint256 fund)) private s_fundsFromBuyer;
-
     Proposal[] private s_proposals;
     Order[] private s_orders;
+
+    mapping(string postId => address owner) private s_postOwnerWallet;
+    mapping(address buyer => mapping(uint256 orderId => uint256 fund)) private s_fundsFromBuyer;
 
     error InvalidPostIdOrWalletInput();
     error InvalidProposalInput();
@@ -39,7 +39,7 @@ contract GiggleService {
     error InvalidAuthorization();
     error ExistenceFundsDetected();
     error InvalidOrderStatus();
-    error InvalidWithdrawAction();
+    error InvalidWithdrawOrRefundAction();
 
     modifier checkPostIdAndWalletInput(string memory _postId, address _wallet) {
         if (bytes(_postId).length == 0 || _wallet == address(0)) {
@@ -64,7 +64,15 @@ contract GiggleService {
         _;
     }
 
-    modifier checkPostOwnerAuthorization(uint256 _orderId, address _caller) {
+    modifier checkPostOwnerAuthorization(string memory _postId, address _caller) {
+        address expectedOwner = s_postOwnerWallet[_postId];
+        if (expectedOwner != _caller) {
+            revert InvalidAuthorization();
+        }
+        _;
+    }
+
+    modifier checkPostOwnerAuthorizationFromProposal(uint256 _orderId, address _caller) {
         uint256 proposalId = s_orders[_orderId].proposalId;
         string memory postId = s_proposals[proposalId].postId;
         address expectedOwner = s_postOwnerWallet[postId];
@@ -75,14 +83,14 @@ contract GiggleService {
     }
 
     modifier checkUserAuthorization(uint256 _proposalId, address _caller) {
-        address expectedBuyer = s_proposals[_proposalId].buyer;
-        if (expectedBuyer != _caller) {
+        address expectedCaller = s_proposals[_proposalId].buyer;
+        if (expectedCaller != _caller) {
             revert InvalidAuthorization();
         }
         _;
     }
 
-    modifier checkApproverAuthorization(uint256 _orderId, address _caller) {
+    modifier checkBuyerAuthorization(uint256 _orderId, address _caller) {
         uint256 proposalId = s_orders[_orderId].proposalId;
         address expectedApprover = s_proposals[proposalId].buyer;
         if (expectedApprover != _caller) {
@@ -91,21 +99,21 @@ contract GiggleService {
         _;
     }
 
-    modifier checkOrderStatus(uint256 _orderId, OrderStatus expectedStatus) {
+    modifier checkOrderStatus(uint256 _orderId, OrderStatus _expectedStatus) {
         OrderStatus status = s_orders[_orderId].status;
-        if (status != expectedStatus) {
+        if (status != _expectedStatus) {
             revert InvalidOrderStatus();
         }
         _;
     }
 
-    modifier checkWithdrawStatus(uint256 _orderId, OrderStatus expectedStatus) {
+    modifier checkAdditionalStepStatus(uint256 _orderId, OrderStatus _expectedStatus) {
         OrderStatus status = s_orders[_orderId].status;
         uint256 orderTimestamp = s_orders[_orderId].orderAcceptedAt;
         uint256 proposalId = s_orders[_orderId].proposalId;
         uint256 daysEstimation = s_proposals[proposalId].daysEstimationForCompletion * 1 days;
-        if (status != expectedStatus && block.timestamp < orderTimestamp + daysEstimation) {
-            revert InvalidWithdrawAction();
+        if (status != _expectedStatus && block.timestamp < (orderTimestamp + daysEstimation)) {
+            revert InvalidWithdrawOrRefundAction();
         }
         _;
     }
@@ -118,15 +126,18 @@ contract GiggleService {
         s_postOwnerWallet[_postId] = _wallet;
     }
 
+    // done test
     function createProposalRequest(
         string memory _postId,
         uint256 _daysEstimationForCompletion,
         address _buyer,
-        uint256 _finalFee
-    ) external checkPostIdAndWalletInput(_postId, _buyer) {
+        uint256 _finalFee,
+        address _caller
+    ) external checkPostIdAndWalletInput(_postId, _buyer) checkPostOwnerAuthorization(_postId, _caller) {
         _addNewProposal(_postId, _daysEstimationForCompletion, _buyer, _finalFee);
     }
 
+    // done test
     function acceptProposalRequest(uint256 _proposalId, address _user)
         external
         payable
@@ -137,32 +148,60 @@ contract GiggleService {
         _addNewOrder(_proposalId);
     }
 
+    // done test
     function finishOrder(uint256 _orderId, address _owner)
         external
-        checkPostOwnerAuthorization(_orderId, _owner)
+        checkPostOwnerAuthorizationFromProposal(_orderId, _owner)
         checkOrderStatus(_orderId, OrderStatus.PAID)
     {
-        s_orders[_orderId].status = OrderStatus.FINISHED;
+        _changeOrderStatus(_orderId, OrderStatus.FINISHED);
     }
 
+    // done test
     function approveFinishedOrder(uint256 _orderId, address _approver)
         external
-        checkApproverAuthorization(_orderId, _approver)
+        checkBuyerAuthorization(_orderId, _approver)
         checkOrderStatus(_orderId, OrderStatus.FINISHED)
     {
-        s_orders[_orderId].status = OrderStatus.APPROVED;
+        _changeOrderStatus(_orderId, OrderStatus.APPROVED);
     }
 
+    // done test
     function withdrawFunds(uint256 _orderId, address _owner)
         external
-        checkPostOwnerAuthorization(_orderId, _owner)
-        checkWithdrawStatus(_orderId, OrderStatus.APPROVED)
+        checkPostOwnerAuthorizationFromProposal(_orderId, _owner)
+        checkAdditionalStepStatus(_orderId, OrderStatus.APPROVED)
     {
-        _withdraw(_orderId, _owner);
+        _handleFunds(_orderId, _owner, OrderStatus.FEE_WITHDRAWED);
     }
 
-    function returnFunds(uint256 _orderId, address _user) external {
-        _refund(_orderId, _user);
+    // done test
+    function returnFunds(uint256 _orderId, address _user)
+        external
+        checkBuyerAuthorization(_orderId, _user)
+        checkAdditionalStepStatus(_orderId, OrderStatus.PAID)
+    {
+        _handleFunds(_orderId, _user, OrderStatus.FAILED_AND_REFUNDED);
+    }
+
+    // done test
+    function getPostOwner(string memory _postId) external view returns (address) {
+        return s_postOwnerWallet[_postId];
+    }
+
+    // done test
+    function getFundsFromBuyer(uint256 _orderId) external view returns (uint256) {
+        return s_fundsFromBuyer[msg.sender][_orderId];
+    }
+
+    // done test
+    function getProposals() external view returns (Proposal[] memory) {
+        return s_proposals;
+    }
+
+    // done test
+    function getOrders() external view returns (Order[] memory) {
+        return s_orders;
     }
 
     function _addNewProposal(
@@ -171,50 +210,38 @@ contract GiggleService {
         address _buyer,
         uint256 _finalFee
     ) private {
-        s_proposals.push(
-            Proposal({
-                proposalId: s_proposals.length,
-                postId: _postId,
-                buyer: _buyer,
-                daysEstimationForCompletion: _daysEstimationForCompletion,
-                finalFee: _finalFee
-            })
-        );
+        uint256 proposalId = s_proposals.length;
+        s_proposals.push(Proposal(proposalId, _postId, _buyer, _finalFee, _daysEstimationForCompletion));
     }
 
     function _addNewOrder(uint256 _proposalId) private {
-        s_orders.push(
-            Order({
-                orderId: s_orders.length,
-                proposalId: _proposalId,
-                orderAcceptedAt: block.timestamp,
-                status: OrderStatus.PAID
-            })
-        );
+        uint256 orderId = s_orders.length;
+        s_orders.push(Order(orderId, _proposalId, block.timestamp, OrderStatus.PAID));
     }
 
-    function _withdraw(uint256 _orderId, address _owner) private {
-        uint256 proposalId = s_orders[_orderId].proposalId;
-        uint256 withdrawAmount = s_proposals[proposalId].finalFee;
-        bool success = _transferFunds(_owner, withdrawAmount);
-        if (success) {
-            s_orders[_orderId].status = OrderStatus.FEE_WITHDRAWED;
-        }
+    function _changeOrderStatus(uint256 _orderId, OrderStatus _status) private {
+        s_orders[_orderId].status = _status;
     }
 
-    function _refund(uint256 _orderId, address _user) private {
+    function _updateFundsFromBuyer(address _buyer, uint256 _orderId, uint256 _newAmount) private {
+        s_fundsFromBuyer[_buyer][_orderId] = _newAmount;
+    }
+
+    function _handleFunds(uint256 _orderId, address _to, OrderStatus _newOrderStatus) private {
         uint256 proposalId = s_orders[_orderId].proposalId;
         uint256 amount = s_proposals[proposalId].finalFee;
-        bool success = _transferFunds(_user, amount);
+        address buyer = s_proposals[proposalId].buyer;
+        bool success = _transferFunds(_to, amount);
         if (success) {
-            s_orders[_orderId].status = OrderStatus.FAILED;
+            _updateFundsFromBuyer(buyer, _orderId, 0);
+            _changeOrderStatus(_orderId, _newOrderStatus);
         }
     }
 
     function _placeFunds(uint256 _orderId, address _buyer, uint256 _amount) private {
         bool success = _transferFunds(address(this), _amount);
         if (success) {
-            s_fundsFromBuyer[_buyer][_orderId] = msg.value;
+            _updateFundsFromBuyer(_buyer, _orderId, _amount);
         }
     }
 
@@ -223,5 +250,9 @@ contract GiggleService {
         (bool success,) = recipient.call{value: _amount}("");
         return success;
     }
+
+    receive() external payable {}
+
+    fallback() external payable {}
     //
 }
