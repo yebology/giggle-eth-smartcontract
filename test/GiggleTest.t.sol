@@ -23,29 +23,18 @@ contract GiggleTest is Test {
     function testSuccessfullyCreateOrderRequest() public {
         hoax(ALICE, 0.5 ether);
         uint256 orderDeadline = block.timestamp + additionalTime;
-        giggle.createOrderRequest{value: 0.5 ether}(
-            orderId,
-            BOB,
-            orderDeadline
-        );
+        giggle.createOrderRequest{value: 0.5 ether}(orderId, BOB, orderDeadline);
         uint256 expectedEthAmountInSmartContract = 0.5 ether;
-        uint256 actualEthAmountInSmartContract = giggle
-            .getGiggleServiceContractAddress()
-            .balance;
+        uint256 actualEthAmountInSmartContract = giggle.getGiggleServiceContractAddress().balance;
         bool expectedOrderExistence = true;
         bool actualOrderExistence = giggle.checkOrderIdExistence(orderId);
         assert(expectedOrderExistence == actualOrderExistence);
-        assertEq(
-            expectedEthAmountInSmartContract,
-            actualEthAmountInSmartContract
-        );
+        assertEq(expectedEthAmountInSmartContract, actualEthAmountInSmartContract);
     }
 
     function testRevertIfInvalidOrderInput() public {
         hoax(ALICE, 0.5 ether);
-        vm.expectRevert(
-            abi.encodeWithSelector(GiggleService.InvalidOrderInput.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(GiggleService.InvalidOrderInput.selector));
         giggle.createOrderRequest{value: 0.5 ether}(orderId, BOB, 0);
     }
 
@@ -53,9 +42,7 @@ contract GiggleTest is Test {
         testSuccessfullyCreateOrderRequest();
         hoax(ALICE, 0.5 ether);
         uint256 orderDeadline = block.timestamp + 1 seconds;
-        vm.expectRevert(
-            abi.encodeWithSelector(GiggleService.DataRedundantDetected.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(GiggleService.DataRedundantDetected.selector));
         giggle.createOrderRequest{value: 0.5 ether}(orderId, BOB, orderDeadline);
     }
 
