@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.28;
 
-contract GiggleService {
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GiggleService is Ownable {
     //
     enum OrderStatus {
         PAID,
@@ -40,6 +42,8 @@ contract GiggleService {
     error ExistenceFundsDetected();
     error InvalidOrderStatus();
     error InvalidWithdrawOrRefundAction();
+
+    constructor(address _owner) Ownable(_owner) {}
 
     modifier checkPostIdAndWalletInput(string memory _postId, address _wallet) {
         if (bytes(_postId).length == 0 || _wallet == address(0)) {
@@ -121,6 +125,7 @@ contract GiggleService {
     // done test
     function registerWallet(string memory _postId, address _wallet)
         external
+        onlyOwner
         checkPostIdAndWalletInput(_postId, _wallet)
     {
         s_postOwnerWallet[_postId] = _wallet;
@@ -133,7 +138,7 @@ contract GiggleService {
         address _buyer,
         uint256 _finalFee,
         address _caller
-    ) external checkPostIdAndWalletInput(_postId, _buyer) checkPostOwnerAuthorization(_postId, _caller) {
+    ) external onlyOwner checkPostIdAndWalletInput(_postId, _buyer) checkPostOwnerAuthorization(_postId, _caller) {
         _addNewProposal(_postId, _daysEstimationForCompletion, _buyer, _finalFee);
     }
 
@@ -141,6 +146,7 @@ contract GiggleService {
     function acceptProposalRequest(uint256 _proposalId, address _user)
         external
         payable
+        onlyOwner
         checkUserAuthorization(_proposalId, _user)
         checkPaymentAmount(_proposalId, msg.value)
     {
@@ -151,6 +157,7 @@ contract GiggleService {
     // done test
     function finishOrder(uint256 _orderId, address _owner)
         external
+        onlyOwner
         checkPostOwnerAuthorizationFromProposal(_orderId, _owner)
         checkOrderStatus(_orderId, OrderStatus.PAID)
     {
@@ -160,6 +167,7 @@ contract GiggleService {
     // done test
     function approveFinishedOrder(uint256 _orderId, address _approver)
         external
+        onlyOwner
         checkBuyerAuthorization(_orderId, _approver)
         checkOrderStatus(_orderId, OrderStatus.FINISHED)
     {
@@ -169,6 +177,7 @@ contract GiggleService {
     // done test
     function withdrawFunds(uint256 _orderId, address _owner)
         external
+        onlyOwner
         checkPostOwnerAuthorizationFromProposal(_orderId, _owner)
         checkAdditionalStepStatus(_orderId, OrderStatus.APPROVED)
     {
@@ -178,6 +187,7 @@ contract GiggleService {
     // done test
     function returnFunds(uint256 _orderId, address _user)
         external
+        onlyOwner
         checkBuyerAuthorization(_orderId, _user)
         checkAdditionalStepStatus(_orderId, OrderStatus.PAID)
     {
@@ -185,22 +195,22 @@ contract GiggleService {
     }
 
     // done test
-    function getPostOwner(string memory _postId) external view returns (address) {
+    function getPostOwner(string memory _postId) external view onlyOwner returns (address) {
         return s_postOwnerWallet[_postId];
     }
 
     // done test
-    function getFundsFromBuyer(uint256 _orderId) external view returns (uint256) {
+    function getFundsFromBuyer(uint256 _orderId) external view onlyOwner returns (uint256) {
         return s_fundsFromBuyer[msg.sender][_orderId];
     }
 
     // done test
-    function getProposals() external view returns (Proposal[] memory) {
+    function getProposals() external view onlyOwner returns (Proposal[] memory) {
         return s_proposals;
     }
 
     // done test
-    function getOrders() external view returns (Order[] memory) {
+    function getOrders() external view onlyOwner returns (Order[] memory) {
         return s_orders;
     }
 

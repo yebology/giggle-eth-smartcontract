@@ -2,13 +2,16 @@
 pragma solidity ^0.8.28;
 
 import {GiggleService} from "./GiggleService.sol";
+import {GiggleHire} from "./GiggleHire.sol";
 
 contract Giggle {
     //
     GiggleService private immutable giggleService;
+    GiggleHire private immutable giggleHire;
 
     constructor() {
-        giggleService = new GiggleService();
+        giggleService = new GiggleService(address(this));
+        giggleHire = new GiggleHire(address(this));
     }
 
     function registerWallet(string memory _postId) external {
