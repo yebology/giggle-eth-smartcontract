@@ -14,53 +14,28 @@ contract Giggle {
         giggleHire = new GiggleHire(address(this));
     }
 
-    function registerWallet(string memory _postId) external {
-        giggleService.registerWallet(_postId, msg.sender);
+    function createOrderRequest(string memory _orderId, address _seller, uint256 _deadlineTimestamp) external payable {
+        giggleService.createOrderRequest{value: msg.value}(_orderId, msg.sender, _seller, _deadlineTimestamp);
     }
 
-    function createProposalRequest(
-        string memory _postId,
-        uint256 _daysEstimationForCompletion,
-        address _buyer,
-        uint256 _finalFee
-    ) external {
-        giggleService.createProposalRequest(_postId, _daysEstimationForCompletion, _buyer, _finalFee, msg.sender);
-    }
-
-    function acceptProposalRequest(uint256 _proposalId) external payable {
-        giggleService.acceptProposalRequest{value: msg.value}(_proposalId, msg.sender);
-    }
-
-    function finishOrder(uint256 _orderId) external {
+    function finishOrder(string memory _orderId) external {
         giggleService.finishOrder(_orderId, msg.sender);
     }
 
-    function approveFinishedOrder(uint256 _orderId) external {
+    function approveFinishedOrder(string memory _orderId) external {
         giggleService.approveFinishedOrder(_orderId, msg.sender);
     }
 
-    function withdrawFunds(uint256 _orderId) external {
+    function withdrawFunds(string memory _orderId) external {
         giggleService.withdrawFunds(_orderId, msg.sender);
     }
 
-    function returnFunds(uint256 _orderId) external {
+    function returnFunds(string memory _orderId) external {
         giggleService.returnFunds(_orderId, msg.sender);
     }
 
-    function getPostOwner(string memory _postId) external view returns (address) {
-        return giggleService.getPostOwner(_postId);
-    }
-
-    function getFundsFromBuyer(uint256 _orderId) external view returns (uint256) {
-        return giggleService.getFundsFromBuyer(_orderId);
-    }
-
-    function getProposals() external view returns (GiggleService.Proposal[] memory) {
-        return giggleService.getProposals();
-    }
-
-    function getOrders() external view returns (GiggleService.Order[] memory) {
-        return giggleService.getOrders();
+    function checkOrderIdExistence(string memory _orderId) external view returns (bool) {
+        return giggleService.checkOrderIdExistence(_orderId);
     }
 
     function getGiggleServiceContractAddress() external view returns (address) {
