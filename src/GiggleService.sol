@@ -19,14 +19,14 @@ contract GiggleService is Ownable, ReentrancyGuard {
         SELLER
     }
 
-    mapping(string orderId => bool isExistence) s_orderExistence;
+    mapping(string orderId => bool isExistence) private s_orderExistence;
 
-    mapping(string orderId => address buyer) s_orderToBuyer;
-    mapping(string orderId => address seller) s_orderToSeller;
+    mapping(string orderId => address buyer) private s_orderToBuyer;
+    mapping(string orderId => address seller) private s_orderToSeller;
 
-    mapping(string orderId => OrderStatus status) s_orderStatus;
-    mapping(string orderId => uint256 deadlineTimestamp) s_orderDeadlineTimestamp;
-    mapping(string orderId => uint256 fee) s_orderFees;
+    mapping(string orderId => OrderStatus status) private s_orderStatus;
+    mapping(string orderId => uint256 deadlineTimestamp) private s_orderDeadlineTimestamp;
+    mapping(string orderId => uint256 fee) private s_orderFees;
 
     error InvalidOrderInput();
     error DataRedundantDetected();
@@ -133,7 +133,7 @@ contract GiggleService is Ownable, ReentrancyGuard {
         _handleFunds(_orderId, _buyer, OrderStatus.FAILED_AND_REFUNDED);
     }
 
-    function checkOrderIdExistence(string memory _orderId) external view returns (bool) {
+    function checkOrderIdExistence(string memory _orderId) external view onlyOwner returns (bool) {
         return s_orderExistence[_orderId];
     }
 
